@@ -15,13 +15,13 @@ const endpoint = process.env.IS_OFFLINE ? 'http://localhost:3000' : `https://${p
 
 //Orders endpoint
 
-app.put("/users/:actor/activities", createUpdateOrder)
+app.put("/order/create", createUpdateOrder)
 
 app.get("/order/list", async (req, res) => {
   try {
-    const { activities, lastEvaluatedKey, limit } = await getOrderList(req, res); // Get orders and token
+    const { userId, orders, lastEvaluatedKey, limit } = await getOrderList(req, res); // Get orders and token
 
-    res.status(200).json({my_feed: activities, next_url: endpoint + `/my_feed?limit=${limit}&nextPageToken=` + lastEvaluatedKey});
+    res.status(200).json({userId, orders, next_url: endpoint + `/order/list?limit=${limit}&nextPageToken=` + lastEvaluatedKey});
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Could not retrieve your home feed" });
@@ -30,9 +30,9 @@ app.get("/order/list", async (req, res) => {
 
 app.get("/order/:orderId", async (req, res) => {
   try {
-    const { activities, lastEvaluatedKey, limit } = await getOrderById(req, res); // Get single order
+    const { userId, orders } = await getOrderById(req, res); // Get single order
 
-    res.status(200).json({friends_feed: activities, next_url: endpoint + `/users/:actor/following?limit=${limit}&nextPageToken=` + lastEvaluatedKey});
+    res.status(200).json({userId, orders});
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Could not retrieve your friend's feed" });

@@ -7,7 +7,7 @@ const {
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
-const ORDER_TABLE = process.env.ORDER_TABLE;
+const ORDERS_TABLE = process.env.ORDERS_TABLE;
 const translateConfig = {
   marshallOptions: {
     convertEmptyValues: true,
@@ -28,87 +28,92 @@ const client = new DynamoDBClient(dynamoDbClientParams);
 const dynamoDbClient = DynamoDBDocumentClient.from(client, translateConfig);
 
 const createUpdateOrder = async (req, res) => {
-  const { userId } = req.params; // Extract path parameters
-  const items = req.body;
-  const dateTime = new Date();
-  
-  // Initialize total cost and total items
-  let totalCost = 0;
-  let totalItems = 0;
-
-  // Iterate over the array of items
-  items.forEach(item => {
-      // Increment total cost by the product of Cost and Quantity
-      totalCost += item.Cost * item.Quantity;
-      // Increment total items by the Quantity
-      totalItems += item.Quantity;
-  });
-
-  const orderId = dateTime.getTime()
-
-  const activityParams = {
-    TableName: ORDER_TABLE,
-    ConditionExpression: 'attribute_not_exists(orderId)',
-    Item: {
-      userId,
-      orderId,
-      orderDate: dateTime.toISOString(),
-      shipDate: dateTime.setDate(dateTime.getDate() + 1),
-      totalItems,
-      totalCost,
-      items
-    },
-  };
-
   try {
+    const userId = req.headers.userid; // Extract from headers
+    const items = req.body;
+    const dateTime = new Date();
+    const newDateTime = new Date(dateTime);
+    newDateTime.setDate(newDateTime.getDate() + 1);
+    const shipDate = newDateTime;
 
-    await dynamoDbClient.send(new PutCommand(activityParams))
     
-    res.status(201).json({ userId, orderId });
-  } catch (error) {// If the orderId already exists, update the order
-    if (error.name === 'ConditionalCheckFailedException') {
-        const updateParams = {
-            TableName: ORDER_TABLE,
-            Key: {
-                userId,
-                orderId
-            },
-            UpdateExpression: 'SET orderDate = :orderDate, shipDate = :shipDate, totalItems = :totalItems, totalCost = :totalCost, Items = :items',
-            ExpressionAttributeValues: {
-                ':orderDate': dateTime.toISOString(),
-                ':shipDate': dateTime.setDate(dateTime.getDate() + 1),
-                ':totalItems': totalItems,
-                ':totalCost': totalCost,
-                ':items': items
-            }
-        };
-        
-        // Perform the update operation
-        try {
-            await dynamoDbClient.send(new UpdateCommand(updateParams));
-            console.log("Order updated successfully");
-            res.status(204).json({ userId, orderId });
-        } catch (updateError) {
-            console.error("Unable to update order:", updateError);
-        }
+    console.log({userId, items})
+    // Initialize total cost and total items
+    let totalCost = 0;
+    let totalItems = 0;
+    let orderId;
+
+    // Iterate over the array of items
+    items.forEach(item => {
+        // Increment total cost by the product of Cost and Quantity
+        totalCost += Number(item.cost) * Number(item.quantity);
+        // Increment total items by the Quantity
+        totalItems += Number(item.quantity);
+    });
+
+    
+    if (req.query.orderId && req.query.orderId !== null) {
+      orderId = req.query.orderId;
+
+      const updateParams = {
+          TableName: ORDERS_TABLE,
+          Key: {
+              userId,
+              orderId
+          },
+          UpdateExpression: 'SET orderDate = :orderDate, shipDate = :shipDate, totalItems = :totalItems, totalCost = :totalCost, #items = :items',
+          ProjectionExpression: '#items',
+          ExpressionAttributeValues: {
+              ':orderDate': dateTime.toISOString(),
+              ':shipDate': shipDate.toISOString(),
+              ':totalItems': `${totalItems}`,
+              ':totalCost': `${totalCost}`,
+              ':items': items
+          },
+          ExpressionAttributeNames: {
+            '#items': 'items',
+          }
+      };
+      
+      await dynamoDbClient.send(new UpdateCommand(updateParams));
     } else {
-        console.error("Unable to create order:", error);
-        res.status(500).json({ message: 'Failed to create order', error });
+      orderId = dateTime.getTime()
+
+      const orderParams = {
+        TableName: ORDERS_TABLE,
+        ConditionExpression: 'attribute_not_exists(orderId)',
+        Item: {
+          userId,
+          orderId: `${orderId}`,
+          orderDate: dateTime.toISOString(),
+          shipDate: shipDate.toISOString(),
+          totalItems: `${totalItems}`,
+          totalCost: `${totalCost}`,
+          items
+        },
+      };
+      
+      await dynamoDbClient.send(new PutCommand(orderParams))
     }
+
+    res.status(200).json({ userId, orderId });
+  } catch (error) {
+    console.error("Unable to create order:", error);
+    res.status(500).json({ message: 'Failed to create order', error });
   }
 }
 
 const getOrderList = async (req, res) => {
   const limit = Number(req.query.limit) || 100;
   let lastEvaluatedKey;
-  const { userId } = req.params;
+  const userId = req.headers.userid;
 
   if (req.query.nextPageToken && req.query.nextPageToken !== null) {
     lastEvaluatedKey = JSON.parse(Buffer.from(req.query.nextPageToken, 'base64'));
   }
 
   const params = new QueryCommand({
-    TableName: ORDER_TABLE,
+    TableName: ORDERS_TABLE,
     KeyConditionExpression: 'userId = :userId',
     ExpressionAttributeValues: {
         ':userId': userId
@@ -140,14 +145,25 @@ const getOrderList = async (req, res) => {
 }
 
 const getOrderById = async (req, res) => {
-  const { userId, orderId } = req.params;
+  const { orderId } = req.params;
+  const userId = req.headers.userid;
   
   const params = new QueryCommand({
-    TableName: ORDER_TABLE,
-    Key: {
-      userId,
-      orderId
-    }
+    TableName: ORDERS_TABLE,
+    KeyConditionExpression: 'userId = :userId AND orderId = :orderId',
+    ExpressionAttributeValues: {
+      ':userId': userId,
+      ':orderId': orderId
+    },
+    ProjectionExpression: '#orderId, #orderDate, #shipDate, #totalItems, #totalCost, #items',
+    ExpressionAttributeNames: {
+      '#orderId': 'orderId',
+      '#orderDate': 'orderDate',
+      '#shipDate': 'shipDate',
+      '#totalItems': 'totalItems',
+      '#totalCost': 'totalCost',
+      '#items': 'items'
+    },
   });
 
   const data = await dynamoDbClient.send(params);
@@ -155,7 +171,8 @@ const getOrderById = async (req, res) => {
   console.log(data.Items)
   
   return {
-    order: data.Items,
+    userId,
+    orders: data.Items,
   };
 }
 
