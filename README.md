@@ -7,14 +7,6 @@ API Gateway - it will act as the entry point for the application and will handle
 Lambda - will be triggered by the API requests sent by the API Gateway.
 
 DynamoDB - will act as the main storage for the entries received from endpoints.
-
-# Access Patterns
-
-Based on the requirements, I identify the use-cases and define the access patterns on how the users will access the data.
-1. Get Order List
-   - 
-2. Get Order by Id
-   - 
 <!--
 title: 'Serverless Framework Node Express API service backed by DynamoDB on AWS'
 description: 'This template demonstrates how to develop and deploy a simple Node Express API service backed by DynamoDB running on AWS Lambda using the traditional Serverless Framework.'

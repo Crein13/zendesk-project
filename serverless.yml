@@ -44,7 +44,7 @@ provider:
             - dynamodb:DeleteItem
           Resource: "*"
   environment:
-    orders_TABLE: ${self:custom.tableName}
+    ORDERS_TABLE: ${self:custom.tableName}
     REST_API_ID: v887v0pz36
 
 functions:
@@ -55,7 +55,7 @@ functions:
 
 resources:
   Resources:
-    ordersTable:
+    OrdersTable:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
@@ -68,7 +68,5 @@ resources:
             KeyType: HASH
           - AttributeName: orderId
             KeyType: RANGE
-        Projection:
-          ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.tableName}
