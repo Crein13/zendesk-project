@@ -1,4 +1,5 @@
 # Shop Serverless Architecture
+![Sample Architecture-Orders](https://github.com/Crein13/zendesk-project/assets/40750111/92fc1f38-2b43-47eb-aa26-e6123883bf0f)
 
 **The application will be implemented using Serverless Framework**
 
