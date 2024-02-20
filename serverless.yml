@@ -1,0 +1,74 @@
+service: orders-api
+frameworkVersion: '3'
+
+useDotenv: true
+
+custom:
+  tableName: 'orders-table-${sls:stage}'
+  serverless-offline:
+    useDocker: false
+  serverless-dynamodb:
+    start:
+      docker: true
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+    stages:
+      - dev
+    seed:
+      ordersdomain:
+        sources:
+          - table: 'orders-table-${sls:stage}'
+            sources: [./seeder/orders.json]
+  
+plugins:
+  - serverless-dynamodb
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  region: ap-southeast-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource: "*"
+  environment:
+    orders_TABLE: ${self:custom.tableName}
+    REST_API_ID: v887v0pz36
+
+functions:
+  api:
+    handler: index.handler
+    events:
+      - httpApi: '*'
+
+resources:
+  Resources:
+    ordersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: orderId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: orderId
+            KeyType: RANGE
+        Projection:
+          ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.tableName}

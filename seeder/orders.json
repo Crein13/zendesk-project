@@ -1,0 +1,58 @@
+[
+  {
+    "userId": "123",
+    "orders": [
+      {
+        "orderId": "431425",
+        "orderDate": "2024-02-20T00:00:01.001Z",
+        "shipDate": "2024-03-21T00:00.01.001Z",
+        "totalItems": 2,
+        "totalCost": 2,
+        "items": [
+          {
+            "itemId": 12345,
+            "itemName": "Widget #001",
+            "cost": 1,
+            "quantity": 1,
+            "extendedCost": 1
+          },
+          {
+            "itemId": 5678,
+            "itemName": "Widget #002",
+            "cost": 1,
+            "quantity": 1,
+            "extendedCost": 1
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "userId": "21",
+    "orders": [
+      {
+        "orderId": "31242",
+        "orderDate": "2024-02-20T00:00:01.001Z",
+        "shipDate": "2024-03-21T00:00.01.001Z",
+        "totalItems": 2,
+        "totalCost": 2,
+        "items": [
+          {
+            "itemId": 12345,
+            "itemName": "Widget #001",
+            "cost": 1,
+            "quantity": 1,
+            "extendedCost": 1
+          },
+          {
+            "itemId": 5678,
+            "itemName": "Widget #002",
+            "cost": 1,
+            "quantity": 1,
+            "extendedCost": 1
+          }
+        ]
+      }
+    ]
+  }
+]
